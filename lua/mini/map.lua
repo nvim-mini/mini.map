@@ -729,12 +729,7 @@ MiniMap.gen_integration = {}
 --- Integration count reflects number of actual matches.
 ---
 --- It prompts integration highlighting update on every change of |'hlsearch'|
---- (see |OptionSet|). Note that it is not happening for some keys:
---- - Toggle search highlight with |CTRL-L-default| or `\h` from |mini.basics|.
----   Use custom mapping which changes mode. Like this: >lua
----
----   vim.keymap.set('n', [[\h]], ':let v:hlsearch = 1 - v:hlsearch<CR>')
---- <
+--- (see |OptionSet|) or |v:hlsearch|. Note that it is not happening for some keys:
 --- - After starting search with |n|, |N|, |star|, or |#|.
 ---   To enable highlight update on this keys, make custom mappings. Like this: >lua
 ---
@@ -752,11 +747,18 @@ MiniMap.gen_integration.builtin_search = function(hl_groups)
 
   -- Update when necessary. Not ideal, because it won't react on `n/N/*`, etc.
   -- See https://github.com/neovim/neovim/issues/18879
-  local augroup = vim.api.nvim_create_augroup('MiniMapBuiltinSearch', {})
-  vim.api.nvim_create_autocmd(
-    'OptionSet',
-    { group = augroup, pattern = 'hlsearch', callback = H.on_integration_update, desc = "On 'hlsearch' update" }
-  )
+  local gr = vim.api.nvim_create_augroup('MiniMapBuiltinSearch', {})
+  local opts = { group = gr, pattern = 'hlsearch', callback = H.on_integration_update, desc = "On 'hlsearch' update" }
+  vim.api.nvim_create_autocmd('OptionSet', opts)
+
+  -- - NOTE: beware of possible https://github.com/neovim/neovim/issues/21469
+  vim.cmd([[
+    silent! call dictwatcherdel(v:, 'hlsearch', 'MiniMapOnHLSearchChanged')
+    function! MiniMapOnHLSearchChanged(d,k,z)
+      lua MiniMap.refresh(nil, { lines = false, scrollbar = false })
+    endfunction
+    call dictwatcheradd(v:, 'hlsearch', 'MiniMapOnHLSearchChanged')
+  ]])
 
   local search_hl = hl_groups.search
 
