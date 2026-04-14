@@ -552,7 +552,8 @@ MiniMap.open = function(opts)
 
   -- Open buffer and window
   local buf_id = MiniMap.current.buf_data.map
-  if buf_id == nil or not vim.api.nvim_buf_is_valid(buf_id) then
+  if buf_id == nil or not vim.api.nvim_buf_is_loaded(buf_id) then
+    pcall(vim.api.nvim_buf_delete, buf_id, { force = true })
     buf_id = H.create_map_buffer()
     MiniMap.current.buf_data.map = buf_id
   end
